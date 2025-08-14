@@ -1,0 +1,67 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+    font-family: sans-serif;
+}
+
+.qibla-finder {
+    text-align: center;
+}
+
+.compass {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background-color: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+}
+
+.arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 100px solid red;
+    top: -30px;
+    transform-origin: bottom center;
+}
+
+.kaaba {
+    width: 40px;
+    height: 40px;
+    background-color: #000;
+    transform: rotateX(60deg) rotateZ(45deg);
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+.kaaba::before, .kaaba::after {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: #333;
+}
+
+.kaaba::before {
+    transform: rotateY(90deg) translateZ(20px) translateX(20px);
+}
+
+.kaaba::after {
+    transform: rotateX(90deg) translateZ(20px) translateY(-20px);
+}
+
+.info {
+    margin-top: 20px;
+}
