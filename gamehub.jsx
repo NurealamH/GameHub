@@ -1087,6 +1087,103 @@ const ChatRoom = ({ onBack }) => {
   );
 };
 
+// QiblaFinder: A component to find the direction of the Qibla with animation.
+const QiblaFinder = ({ onBack }) => {
+  const [location, setLocation] = useState(null);
+  const [qiblaDirection, setQiblaDirection] = useState(0);
+  const [heading, setHeading] = useState(0);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (err) => {
+          setError(err.message);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by this browser.");
+    }
+
+    const handleOrientation = (event) => {
+      if (event.webkitCompassHeading) {
+        // iOS
+        setHeading(event.webkitCompassHeading);
+      } else if (event.alpha) {
+        // Android
+        setHeading(360 - event.alpha);
+      }
+    };
+
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleOrientation);
+    }
+
+    return () => {
+      if (window.DeviceOrientationEvent) {
+        window.removeEventListener('deviceorientation', handleOrientation);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location) {
+      const kaabaLat = 21.4225;
+      const kaabaLng = 39.8262;
+      const { latitude, longitude } = location;
+
+      const latRad = (latitude * Math.PI) / 180;
+      const lngRad = (longitude * Math.PI) / 180;
+      const kaabaLatRad = (kaabaLat * Math.PI) / 180;
+      const kaabaLngRad = (kaabaLng * Math.PI) / 180;
+
+      const y = Math.sin(kaabaLngRad - lngRad);
+      const x = Math.cos(latRad) * Math.tan(kaabaLatRad) - Math.sin(latRad) * Math.cos(kaabaLngRad - lngRad);
+      let angle = Math.atan2(y, x) * (180 / Math.PI);
+      angle = (angle + 360) % 360;
+      setQiblaDirection(angle);
+    }
+  }, [location]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-teal-800 to-cyan-900 text-white p-4 font-inter">
+      <h2 className="text-4xl font-extrabold mb-8 text-center drop-shadow-lg">Qibla Finder</h2>
+      {error && <p className="text-red-400 text-lg mb-4">{error}</p>}
+      {location ? (
+        <div className="flex flex-col items-center">
+          <div className="relative w-64 h-64 border-4 border-white rounded-full flex items-center justify-center text-white mb-8"
+               style={{ transform: `rotate(${-heading}deg)` }}>
+            <div className="absolute w-2 h-32 bg-white top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full origin-bottom"
+                 style={{ transform: `translateX(-50%) rotate(${qiblaDirection}deg)` }}>
+                   <div className="absolute w-0 h-0 border-l-8 border-r-8 border-b-16 border-l-transparent border-r-transparent border-b-red-500 top-0 left-1/2 transform -translate-x-1/2"></div>
+            </div>
+            <div className="absolute top-0 text-2xl font-bold">N</div>
+            <div className="absolute bottom-0 text-2xl font-bold">S</div>
+            <div className="absolute left-2 text-2xl font-bold">W</div>
+            <div className="absolute right-2 text-2xl font-bold">E</div>
+          </div>
+          <p className="text-xl">Qibla Direction: {qiblaDirection.toFixed(2)}°</p>
+          <p className="text-lg">Your Location: {location.latitude.toFixed(2)}°, {location.longitude.toFixed(2)}°</p>
+        </div>
+      ) : (
+        <LoadingSpinner />
+      )}
+      <button
+        onClick={onBack}
+        className="mt-8 bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+      >
+        Back to Hub
+      </button>
+    </div>
+  );
+};
+
 // GameCard: Component for displaying a single game in the hub.
 const GameCard = ({ game, onClick }) => (
   <div
@@ -1117,6 +1214,7 @@ export default function App() {
     { id: 'clickerGame', name: 'Simple Clicker', type: 'Single Player', component: SimpleClickerGame },
     { id: 'ticTacToeMulti', name: 'Tic-Tac-Toe', type: 'Multiplayer', component: TicTacToeMultiplayer },
     { id: 'chatRoom', name: 'Chat Room', type: 'Multiplayer', component: ChatRoom },
+    { id: 'qiblaFinder', name: 'Qibla Finder', type: 'Utility', component: QiblaFinder },
     // Add more games here following the same structure
     // { id: 'connectFour', name: 'Connect Four', type: 'Multiplayer', component: ConnectFourGame },
     // { id: 'wordGuessing', name: 'Word Guessing', type: 'Multiplayer', component: WordGuessingGame },
