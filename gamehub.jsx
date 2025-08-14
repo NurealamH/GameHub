@@ -1087,6 +1087,138 @@ const ChatRoom = ({ onBack }) => {
   );
 };
 
+// QiblaFinder: A 3D Qibla direction finder.
+const QiblaFinder = ({ onBack }) => {
+  const [location, setLocation] = useState(null);
+  const [heading, setHeading] = useState(null);
+  const [error, setError] = useState(null);
+  const [qiblaDirection, setQiblaDirection] = useState(null);
+
+  useEffect(() => {
+    if (location) {
+      const { latitude, longitude } = location;
+      const kaabaLat = 21.4225;
+      const kaabaLng = 39.8262;
+
+      const phiK = (kaabaLat * Math.PI) / 180.0;
+      const lambdaK = (kaabaLng * Math.PI) / 180.0;
+      const phi = (latitude * Math.PI) / 180.0;
+      const lambda = (longitude * Math.PI) / 180.0;
+
+      const qibla =
+        (180.0 / Math.PI) *
+        Math.atan2(
+          Math.sin(lambdaK - lambda),
+          Math.cos(phi) * Math.tan(phiK) -
+            Math.sin(phi) * Math.cos(lambdaK - lambda)
+        );
+
+      setQiblaDirection(qibla);
+    }
+  }, [location]);
+
+  useEffect(() => {
+    // Request permission for geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (err) => {
+          setError(`Geolocation error: ${err.message}`);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by this browser.");
+    }
+
+    // Request permission for device orientation
+    const handleDeviceOrientation = (event) => {
+      if (event.webkitCompassHeading) {
+        // For iOS
+        setHeading(event.webkitCompassHeading);
+      } else if (event.alpha) {
+        // For Android
+        setHeading(360 - event.alpha);
+      }
+    };
+
+    if (window.DeviceOrientationEvent) {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13+
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleDeviceOrientation);
+                    } else {
+                        setError("Permission for device orientation was denied.");
+                    }
+                })
+                .catch(console.error);
+        } else {
+            // Non-iOS 13+ devices
+            window.addEventListener('deviceorientation', handleDeviceOrientation);
+        }
+    } else {
+        setError("Device orientation is not supported by this browser.");
+    }
+
+    return () => {
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    };
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-teal-800 to-cyan-900 text-white p-4 font-inter">
+      <h2 className="text-4xl font-extrabold mb-8 text-center drop-shadow-lg">Qibla Finder</h2>
+      <div className="bg-gray-800 bg-opacity-70 p-8 rounded-xl shadow-xl border border-gray-700 max-w-md w-full text-center">
+        {error && <p className="text-red-500 text-lg mb-4">{error}</p>}
+        {location ? (
+          <p className="text-xl mb-4">
+            Latitude: {location.latitude.toFixed(4)}, Longitude: {location.longitude.toFixed(4)}
+          </p>
+        ) : (
+          <p className="text-xl mb-4">Getting location...</p>
+        )}
+        <div className="relative w-64 h-64 mx-auto mt-8" style={{ perspective: '1000px' }}>
+          <div
+            className="w-full h-full rounded-full bg-gray-700 shadow-2xl transition-transform duration-500"
+            style={{
+              transformStyle: 'preserve-3d',
+              transform: `rotateZ(${-(heading || 0)}deg)`,
+            }}
+          >
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 text-white text-2xl font-bold">N</div>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-white text-2xl font-bold">S</div>
+            <div className="absolute top-1/2 right-0 -translate-y-1/2 pr-2 text-white text-2xl font-bold">E</div>
+            <div className="absolute top-1/2 left-0 -translate-y-1/2 pl-2 text-white text-2xl font-bold">W</div>
+
+            <div
+              className="absolute top-1/2 left-1/2 w-1 h-28 bg-red-500 rounded-full"
+              style={{
+                transformOrigin: 'bottom',
+                transform: `translateX(-50%) translateY(-100%) rotateZ(${(qiblaDirection || 0)}deg)`,
+                boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)',
+              }}
+            >
+              <div className="absolute -top-4 -right-3 w-8 h-8 text-4xl text-yellow-300">🕋</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onBack}
+        className="mt-8 bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg"
+      >
+        Back to Hub
+      </button>
+    </div>
+  );
+};
+
 // GameCard: Component for displaying a single game in the hub.
 const GameCard = ({ game, onClick }) => (
   <div
@@ -1117,6 +1249,7 @@ export default function App() {
     { id: 'clickerGame', name: 'Simple Clicker', type: 'Single Player', component: SimpleClickerGame },
     { id: 'ticTacToeMulti', name: 'Tic-Tac-Toe', type: 'Multiplayer', component: TicTacToeMultiplayer },
     { id: 'chatRoom', name: 'Chat Room', type: 'Multiplayer', component: ChatRoom },
+    { id: 'qiblaFinder', name: 'Qibla Finder', type: 'Utility', component: QiblaFinder },
     // Add more games here following the same structure
     // { id: 'connectFour', name: 'Connect Four', type: 'Multiplayer', component: ConnectFourGame },
     // { id: 'wordGuessing', name: 'Word Guessing', type: 'Multiplayer', component: WordGuessingGame },
